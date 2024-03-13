@@ -2,6 +2,7 @@ import rclpy
 from rclpy.node import Node
 from lidar_serial import Lidar
 from sensor_msgs.msg import LaserScan
+import sys
 class LidarPublisher(Node):
 
     def __init__(self):
@@ -11,7 +12,7 @@ class LidarPublisher(Node):
 
     def scan(self):
         while True:
-            msg = self.lidar.read_pack().scan
+            msg = self.lidar.full_scan()
             self.publisher.publish(msg)
     
 
