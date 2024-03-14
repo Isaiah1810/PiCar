@@ -8,7 +8,7 @@ class LidarPublisher(Node):
     def __init__(self):
         super().__init__('lidar_publisher')
         self.publisher = self.create_publisher(LaserScan, '/scan', 10)
-        self.lidar = Lidar(laser_scan=True)
+        self.lidar = Lidar()
 
     def scan(self):
         while True:

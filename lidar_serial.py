@@ -42,13 +42,15 @@ class Lidar:
         msg.header = Header()
         msg.header.stamp = Clock().now().to_msg()
         msg.header.frame_id = self.frame_id
-        msg.angle_min = (start_angle*100*math.pi/180)
-        msg.angle_max = (end_angle*100*math.pi/180)
-        msg.angle_increment = angle_increment
-        msg.time_increment = time_diff/self.full_scan_num
-        msg.scan_time = time_diff
-        msg.ranges = map((lambda x: x*1000), points)
-        msg.intensities = intensities
+        msg.angle_min = float(start_angle/100*math.pi/180)
+        msg.angle_max = float(end_angle/100*math.pi/180)
+        msg.angle_increment = float(angle_increment/100*math.pi/180)
+        msg.time_increment = float(time_diff/self.full_scan_num)
+        msg.scan_time = float(time_diff)
+        msg.range_max = 8.0
+        msg.range_min = 0.3
+        msg.ranges = map((lambda x: float(x/1000)), points)
+        msg.intensities = map((lambda x: float(x)), intensities)
         return msg
 
 
@@ -88,7 +90,7 @@ class Lidar:
         while(start != bytes('T', "ascii")):
             start = self.ser.read()
         msg = self.ser.read(self.PACK_SIZE)
-        return self.partially_process_packprocess_pack(msg)
+        return self.partially_process_pack(msg)
 
     #Take raw lidar bytes and return distances and intensities
     def partially_process_pack(self, msg):
@@ -100,7 +102,7 @@ class Lidar:
             strength = msg[7+3*i]
             data_points.append(point)
             intensities.append(strength)
-        return data_points, strength
+        return data_points, intensities
 
 
     #Do take one full 360 scan and return ROS LaserScan message
@@ -113,19 +115,19 @@ class Lidar:
                 scan = self.read_pack()
                 start_angle = scan.start_angle
                 angle_increment = (scan.end_angle-scan.start_angle)/12
-                data_points.append(scan.points)
-                intensities.append(scan.intensities)
+                data_points.extend(scan.points)
+                intensities.extend(scan.intensities)
             elif (i == (self.full_scan_num-1)):
-                time_diff = (time_init - time.time())
+                time_diff = (time.time()-time_init)
                 scan = self.read_pack()
                 end_angle = scan.end_angle
-                data_points.append(scan.points)
-                intensities.append(scan.intensities)
+                data_points.extend(scan.points)
+                intensities.extend(scan.intensities)
             else:
                 points, strengths = self.partial_read()
-                data_points.append(points)
-                intensities.append(strengths)
-        return self.create_msg(self, start_angle, end_angle, angle_increment, time_diff, points, intensities)
+                data_points.extend(points)
+                intensities.extend(strengths)
+        return self.create_msg(start_angle, end_angle, angle_increment, time_diff, data_points, intensities)
 
     def close(self):
         self.ser.close()
