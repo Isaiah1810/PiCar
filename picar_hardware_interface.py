@@ -7,17 +7,17 @@ class Interface:
         self.ser = serial.Serial(port=self.port,
                                  baudrate=self.baud_rate,
                                  timeout=5.0,
-                                 bytesize=8,
-                                 parity='N',
-                                 stopbits=1)
+                                 bytesize=serial.EIGHTBITS,
+                                 parity=serial.PARITY_NONE,
+                                 stopbits=serial.STOPBITS_ONE)
     def set_freq(self, freq):
         if(freq > 999): return 1
-        self.ser.write(f"F{freq}")
+        self.ser.write(f"F{freq}".encode('ASCII'))
     
     def set_duty(self, duty):
-        self.ser.write(f"D{duty}")
+        self.ser.write(f"F{str(duty).zfill(3)}".encode('ASCII'))
 
     def read(self):
-        self.ser.write("read")
-        msg = self.read(4)
+        self.ser.write("read".encode("ASCII"))
+        msg = self.ser.read_until("%".encode("ASCII"))
         print(str(msg))
