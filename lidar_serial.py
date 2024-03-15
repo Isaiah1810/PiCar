@@ -4,6 +4,7 @@ from std_msgs.msg import Header
 from rclpy.clock import Clock
 import time
 import math
+import numpy as np
 
 ####################################
 #Library for working with LD20 Lidar over USB port(or other device)
@@ -42,15 +43,15 @@ class Lidar:
         msg.header = Header()
         msg.header.stamp = Clock().now().to_msg()
         msg.header.frame_id = self.frame_id
-        msg.angle_min = float(start_angle/100*math.pi/180)
-        msg.angle_max = float(end_angle/100*math.pi/180)
-        msg.angle_increment = float(angle_increment/100*math.pi/180)
+        msg.angle_min = float(end_angle/100*math.pi/180)
+        msg.angle_max = float(start_angle/100*math.pi/180)
+        msg.angle_increment = 2*math.pi/self.full_scan_num
         msg.time_increment = float(time_diff/self.full_scan_num)
         msg.scan_time = float(time_diff)
         msg.range_max = 8.0
         msg.range_min = 0.3
-        msg.ranges = map((lambda x: float(x/1000)), points)
-        msg.intensities = map((lambda x: float(x)), intensities)
+        msg.ranges = points
+        msg.intensities = intensities
         return msg
 
 
@@ -100,10 +101,9 @@ class Lidar:
         for i in range(12):
             point = msg[5+3*i] | (msg[6+3*i] << 8)
             strength = msg[7+3*i]
-            data_points.append(point)
-            intensities.append(strength)
+            data_points.append(point/1000)
+            intensities.append(float(strength))
         return data_points, intensities
-
 
     #Do take one full 360 scan and return ROS LaserScan message
     def full_scan(self):
@@ -114,7 +114,7 @@ class Lidar:
                 time_init = time.time()
                 scan = self.read_pack()
                 start_angle = scan.start_angle
-                angle_increment = (scan.end_angle-scan.start_angle)/12
+                angle_increment = None
                 data_points.extend(scan.points)
                 intensities.extend(scan.intensities)
             elif (i == (self.full_scan_num-1)):
